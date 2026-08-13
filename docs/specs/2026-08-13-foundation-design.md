@@ -50,6 +50,7 @@ Standalone git repo at `~/armillary/repos/steps`. **No studio dependencies** (no
 | `react-native-svg` | Chart-style visualizations (and the starter chart) |
 | `react-native-reanimated`, `react-native-gesture-handler` | Motion and touch, pre-wired |
 | `expo-haptics` | Cheap delight |
+| `@react-native-community/datetimepicker` | Native date picker for the add-entry screen |
 
 ## Data model
 
@@ -101,7 +102,7 @@ Every core loop works end-to-end exactly once, deliberately unstyled (system fon
 ## Handoff affordances
 
 - **In-repo `CLAUDE.md` written for her**: the app's shape in plain language, the hooks with copy-pasteable examples, how to run it, the "you can't really break `src/data/`" guarantee, and a few starter prompt ideas (rename the app, change the chart, make the journal day-centric…).
-- **Seed script** (`npm run seed`): fills SQLite with a year of plausible fake step data so the simulator works without her phone.
+- **Seed data**: a dev-only "fill with fake data" action (visible only in `__DEV__` builds, on the sync/settings surface) that inserts a year of plausible fake step data, so the simulator works without her phone. In-app rather than a node script because a script can't reach the simulator app's SQLite sandbox.
 - **Git from day one**: the foundation lands as clean commits, so "what changed?" is always answerable and anything is undoable.
 
 ## Error handling
@@ -118,7 +119,7 @@ Jest (jest-expo) on the data layer only: migrations, entry CRUD (including photo
 
 ## Dev workflow
 
-One-time (David): `npx expo run:ios --device` with the studio Apple developer certificate to put the dev client on her iPhone. From then on (her): open the project on the Mac, `npx expo start`, phone connects over Wi-Fi, hot reload. Real step data appears the moment permission is granted. Simulator + `npm run seed` is the phone-free fallback.
+One-time (David): `npx expo run:ios --device` with the studio Apple developer certificate to put the dev client on her iPhone. From then on (her): open the project on the Mac, `npx expo start`, phone connects over Wi-Fi, hot reload. Real step data appears the moment permission is granted. Simulator + the dev-only seed action is the phone-free fallback.
 
 ## Out of scope (deliberately)
 
