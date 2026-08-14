@@ -1,17 +1,7 @@
-import { Text, View, StyleSheet } from "react-native";
+import { Redirect } from 'expo-router'
+import { getDb, getMeta } from '../data'
 
 export default function Index() {
-  return (
-    <View style={styles.container}>
-      <Text>Edit src/app/index.tsx to edit this screen.</Text>
-    </View>
-  );
+  const welcomed = getMeta(getDb(), 'welcome_done') === '1'
+  return <Redirect href={welcomed ? '/(tabs)/today' : '/welcome'} />
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-});
