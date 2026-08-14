@@ -1,4 +1,4 @@
-import { Link, type Href } from 'expo-router'
+import { Link } from 'expo-router'
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useState } from 'react'
 import { BarChart } from '../../components/BarChart'
@@ -28,11 +28,11 @@ export default function Today() {
         <BarChart data={chartData} />
       </View>
       {permissionState === 'shouldRequest' && (
-        <Link href={'/settings' as Href} style={styles.link}>
+        <Link href="/settings" style={styles.link}>
           Connect Apple Health to see your steps →
         </Link>
       )}
-      <Link href={'/settings' as Href} style={styles.link}>
+      <Link href="/settings" style={styles.link}>
         {lastSyncedAt ? `last synced ${new Date(lastSyncedAt).toLocaleTimeString()}` : 'not synced yet'}
       </Link>
     </ScrollView>
