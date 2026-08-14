@@ -1,6 +1,6 @@
 /**
  * The app's data foundation — the only module screens should import from.
- * Everything here is tested and safe to build on. See CLAUDE.md for a tour.
+ * Everything here is tested and safe to build on. See AGENTS.md for a tour.
  */
 export { addDays, dateKey, lastNDateKeys, todayKey } from './dates'
 export { addEntry, deleteEntry, getEntry, listEntries, updateEntry, type Entry, type EntryPhoto } from './entries'

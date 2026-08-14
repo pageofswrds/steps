@@ -30,8 +30,15 @@ export function upsertDailyMetrics(rows: DailyMetric[], syncedAt: string): void 
   if (rows.length) notify('daily_metrics')
 }
 
+const DATE_KEY_RE = /^\d{4}-\d{2}-\d{2}$/
+
 /** One row per calendar day in [start, end], ascending; zeros where nothing is stored. */
 export function getDailyMetrics(range: { start: string; end: string }): DailyMetric[] {
+  if (!DATE_KEY_RE.test(range.start) || !DATE_KEY_RE.test(range.end)) return []
+  if (range.start > range.end) return []
+  // Date keys are local dates; parse at noon to dodge DST edges.
+  let cursor = new Date(`${range.start}T12:00:00`)
+  if (Number.isNaN(cursor.getTime())) return []
   const stored = new Map(
     getDb()
       .all<{ date: string; steps: number; distance_meters: number }>(
@@ -41,8 +48,6 @@ export function getDailyMetrics(range: { start: string; end: string }): DailyMet
       .map((r) => [r.date, r]),
   )
   const out: DailyMetric[] = []
-  // Date keys are local dates; parse at noon to dodge DST edges.
-  let cursor = new Date(`${range.start}T12:00:00`)
   const last = range.end
   while (dateKey(cursor) <= last) {
     const key = dateKey(cursor)

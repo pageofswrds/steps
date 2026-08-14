@@ -29,5 +29,9 @@ export async function importPhotos(entryId: string, sourceUris: string[]): Promi
 /** Deletes all photo files belonging to an entry. */
 export function deletePhotosForEntry(entryId: string): void {
   const dir = entryDir(entryId)
-  if (dir.exists) dir.delete()
+  try {
+    if (dir.exists) dir.delete()
+  } catch (e) {
+    console.warn(`photo cleanup failed, skipping: ${entryId}`, e)
+  }
 }

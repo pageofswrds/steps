@@ -17,8 +17,8 @@ const WINDOW_DAYS = 90
  */
 export async function syncHealth(options?: { requestPermissionIfNeeded?: boolean; source?: HealthSource }): Promise<{ status: SyncStatus }> {
   const source = options?.source ?? healthKitSource
-  const db = getDb()
   try {
+    const db = getDb()
     if (!(await source.isAvailable())) return { status: 'unavailable' }
 
     let permission = await source.permissionStatus()

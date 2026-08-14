@@ -1,5 +1,6 @@
 import { setDbForTesting } from '../db/db'
 import { migrate } from '../db/migrations'
+import { todayKey } from '../dates'
 import { getDailyMetrics, getWorkouts, upsertDailyMetrics, upsertWorkouts } from '../metrics'
 import { createTestDb } from './helpers/testDb'
 
@@ -9,6 +10,19 @@ beforeEach(() => {
   setDbForTesting(db)
 })
 afterEach(() => setDbForTesting(null))
+
+// RED for this one was skipped deliberately: before the fix, a malformed `start`
+// (e.g. 'today') makes the cursor 'Invalid Date' -> dateKey 'NaN-NaN-NaN', which
+// never advances and never sorts >= a real end date -- the loop hangs forever.
+// Running this against the pre-fix code would hang the whole suite, so it's
+// written straight against the fixed implementation instead of run RED first.
+test('getDailyMetrics returns [] for a malformed range.start instead of hanging', () => {
+  expect(getDailyMetrics({ start: 'today', end: todayKey() })).toEqual([])
+})
+
+test('getDailyMetrics returns [] for a degenerate range (start > end)', () => {
+  expect(getDailyMetrics({ start: '2026-08-12', end: '2026-08-10' })).toEqual([])
+})
 
 test('upsert replaces by date; getDailyMetrics gap-fills the range ascending', () => {
   upsertDailyMetrics([{ date: '2026-08-11', steps: 100, distanceMeters: 80 }], 't1')

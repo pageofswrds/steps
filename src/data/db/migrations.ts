@@ -45,7 +45,14 @@ const migrations: ReadonlyArray<(db: Db) => void> = [
 export function migrate(db: Db): void {
   const current = db.get<{ user_version: number }>('PRAGMA user_version')?.user_version ?? 0
   for (let i = current; i < migrations.length; i++) {
-    migrations[i](db)
-    db.exec(`PRAGMA user_version = ${i + 1}`)
+    try {
+      db.exec('BEGIN')
+      migrations[i](db)
+      db.exec(`PRAGMA user_version = ${i + 1}`)
+      db.exec('COMMIT')
+    } catch (e) {
+      db.exec('ROLLBACK')
+      throw e
+    }
   }
 }
