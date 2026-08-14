@@ -54,6 +54,7 @@ The screens, by file:
 | `src/app/day/[date].tsx` | One day: its steps, its walks, its entries |
 | `src/app/entry/new.tsx` | Writing a new entry (opens as a sheet) |
 | `src/app/entry/[id].tsx` | Reading, editing, deleting one entry |
+| `src/app/index.tsx` | The doorway — decides, on every launch, whether you've seen the welcome screen yet and sends you to it or straight to the tabs |
 | `src/app/welcome.tsx` | The first-launch screen |
 | `src/app/settings.tsx` | Health connection, and the fake-data button |
 | `src/app/_layout.tsx`, `src/app/(tabs)/_layout.tsx` | The frame — which screens exist, what the tabs are called |
