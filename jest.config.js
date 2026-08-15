@@ -1,0 +1,10 @@
+module.exports = {
+  preset: 'jest-expo/ios',
+  testMatch: ['**/__tests__/**/*.test.(ts|tsx)'],
+  transformIgnorePatterns: [
+    'node_modules/(?!((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@sentry/react-native|native-base|react-native-svg|@kingstinct/.*|react-native-nitro-modules))',
+  ],
+  moduleNameMapper: {
+    '^@kingstinct/react-native-healthkit$': '<rootDir>/src/data/__tests__/helpers/healthkitStub.ts',
+  },
+}
