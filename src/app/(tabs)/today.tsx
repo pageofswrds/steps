@@ -1,9 +1,11 @@
-import { Link } from 'expo-router'
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { Link, Tabs, router } from 'expo-router'
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useState } from 'react'
 import { Picker, Text as SwiftText } from '@expo/ui/swift-ui'
 import { pickerStyle, tag } from '@expo/ui/swift-ui/modifiers'
+import { SymbolView } from 'expo-symbols'
 import { BarChart } from '../../components/BarChart'
+import { MonthCalendar } from '../../components/MonthCalendar'
 import { addDays, dateKey, syncHealth, todayKey, useDailySteps, useHourlySteps, useSyncStatus, useToday } from '../../data'
 
 type Range = 'day' | 'week'
@@ -22,6 +24,7 @@ export default function Today() {
   const { lastSyncedAt, permissionState } = useSyncStatus()
   const [refreshing, setRefreshing] = useState(false)
   const [range, setRange] = useState<Range>('week')
+  const [showCalendar, setShowCalendar] = useState(false)
 
   const refresh = async () => {
     setRefreshing(true)
@@ -37,20 +40,37 @@ export default function Today() {
 
   return (
     <ScrollView contentContainerStyle={styles.container} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}>
+      {/* the calendar button lives in the screen's own header, top right */}
+      <Tabs.Screen
+        options={{
+          headerRight: () => (
+            <Pressable onPress={() => setShowCalendar((v) => !v)} hitSlop={12}>
+              <SymbolView name={showCalendar ? 'chart.bar.fill' : 'calendar'} size={22} tintColor="#4a90d9" />
+            </Pressable>
+          ),
+        }}
+      />
       <Text style={styles.steps}>{today.steps.toLocaleString()}</Text>
       <Text style={styles.caption}>steps today · {km} km</Text>
       <Picker
         selection={range}
-        onSelectionChange={(selection) => setRange(selection as Range)}
+        onSelectionChange={(selection) => {
+          setRange(selection as Range)
+          setShowCalendar(false) // picking a range always leaves the calendar
+        }}
         modifiers={[pickerStyle('segmented')]}
       >
         <SwiftText modifiers={[tag('day')]}>Day</SwiftText>
         <SwiftText modifiers={[tag('week')]}>Week</SwiftText>
       </Picker>
-      <View style={styles.chart}>
-        <Text style={styles.caption}>{range === 'day' ? 'today by hour' : 'last 7 days'}</Text>
-        <BarChart data={chartData} />
-      </View>
+      {showCalendar ? (
+        <MonthCalendar onSelectDay={(date) => router.push({ pathname: '/day/[date]', params: { date } })} />
+      ) : (
+        <View style={styles.chart}>
+          <Text style={styles.caption}>{range === 'day' ? 'today by hour' : 'last 7 days'}</Text>
+          <BarChart data={chartData} />
+        </View>
+      )}
       {permissionState === 'shouldRequest' && (
         <Link href="/settings" style={styles.link}>
           Connect Apple Health to see your steps →
