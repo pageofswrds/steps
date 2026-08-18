@@ -1,14 +1,27 @@
 import { Link } from 'expo-router'
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useState } from 'react'
+import { Picker, Text as SwiftText } from '@expo/ui/swift-ui'
+import { pickerStyle, tag } from '@expo/ui/swift-ui/modifiers'
 import { BarChart } from '../../components/BarChart'
-import { addDays, dateKey, syncHealth, todayKey, useDailySteps, useSyncStatus, useToday } from '../../data'
+import { addDays, dateKey, syncHealth, todayKey, useDailySteps, useHourlySteps, useSyncStatus, useToday } from '../../data'
+
+type Range = 'day' | 'week'
+
+/** '12a' / '6a' / '12p' / '6p' — only multiples of 6 get a label. */
+function hourLabel(hour: number): string {
+  if (hour % 6 !== 0) return ''
+  const h12 = hour % 12 === 0 ? 12 : hour % 12
+  return `${h12}${hour < 12 ? 'a' : 'p'}`
+}
 
 export default function Today() {
   const today = useToday()
   const week = useDailySteps({ start: dateKey(addDays(new Date(), -6)), end: todayKey() })
+  const hours = useHourlySteps(todayKey())
   const { lastSyncedAt, permissionState } = useSyncStatus()
   const [refreshing, setRefreshing] = useState(false)
+  const [range, setRange] = useState<Range>('week')
 
   const refresh = async () => {
     setRefreshing(true)
@@ -17,14 +30,25 @@ export default function Today() {
   }
 
   const km = (today.distanceMeters / 1000).toFixed(1)
-  const chartData = week.map((d) => ({ label: d.date.slice(8), value: d.steps }))
+  const chartData =
+    range === 'day'
+      ? hours.map((h) => ({ label: hourLabel(h.hour), value: h.steps }))
+      : week.map((d) => ({ label: d.date.slice(8), value: d.steps }))
 
   return (
     <ScrollView contentContainerStyle={styles.container} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}>
       <Text style={styles.steps}>{today.steps.toLocaleString()}</Text>
       <Text style={styles.caption}>steps today · {km} km</Text>
+      <Picker
+        selection={range}
+        onSelectionChange={(selection) => setRange(selection as Range)}
+        modifiers={[pickerStyle('segmented')]}
+      >
+        <SwiftText modifiers={[tag('day')]}>Day</SwiftText>
+        <SwiftText modifiers={[tag('week')]}>Week</SwiftText>
+      </Picker>
       <View style={styles.chart}>
-        <Text style={styles.caption}>last 7 days</Text>
+        <Text style={styles.caption}>{range === 'day' ? 'today by hour' : 'last 7 days'}</Text>
         <BarChart data={chartData} />
       </View>
       {permissionState === 'shouldRequest' && (
