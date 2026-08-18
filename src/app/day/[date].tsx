@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native'
 import { Image } from 'expo-image'
 import { BarChart } from '../../components/BarChart'
 import { useDailySteps, useEntries, useHourlySteps, useWorkouts } from '../../data'
+import { hourLabel } from '../../format'
 import { usePalette } from '../../theme'
 
 // One day: its numbers, its workouts, its memories. If the journal ever
@@ -16,9 +17,7 @@ export default function DayDetail() {
   const workouts = useWorkouts({ start: date, end: date })
   const hours = useHourlySteps(date)
 
-  // 0 → '12a', 9 → '9a', 12 → '12p', 18 → '6p'. Every hour gets a label even
-  // though only every sixth is drawn — the chart needs them all to tell its
-  // bars apart, and picks which ones to show itself.
+  // Every hour gets a label; the chart decides which of them to draw.
   const hourly = hours.map((h) => ({ label: hourLabel(h.hour), value: h.steps }))
   const walkedAtAll = hours.some((h) => h.steps > 0)
 
@@ -71,19 +70,6 @@ export default function DayDetail() {
       </View>
     </ScrollView>
   )
-}
-
-/**
- * The hour as a bare number, in whichever clock the phone is set to.
- *
- * Rather than deciding 12- or 24-hour ourselves, we ask the phone to format the
- * time and then keep only the digits. On a 24-hour phone that gives 0, 6, 12,
- * 18; on a 12-hour one, 12, 6, 12, 6. Same code either way, and it follows the
- * device's own time settings instead of a guess.
- */
-function hourLabel(hour: number) {
-  const formatted = new Date(2000, 0, 1, hour).toLocaleTimeString(undefined, { hour: 'numeric' })
-  return formatted.match(/\d+/)?.[0] ?? String(hour)
 }
 
 const styles = StyleSheet.create({

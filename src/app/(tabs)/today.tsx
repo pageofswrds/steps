@@ -8,16 +8,10 @@ import { SymbolView } from 'expo-symbols'
 import { BarChart } from '../../components/BarChart'
 import { MonthCalendar } from '../../components/MonthCalendar'
 import { addDays, dateKey, syncHealth, todayKey, useDailySteps, useEntries, useHourlySteps, useSyncStatus, useToday } from '../../data'
+import { hourLabel } from '../../format'
 import { usePalette } from '../../theme'
 
 type Range = 'day' | 'week'
-
-/** '12a' / '6a' / '12p' / '6p' — only multiples of 6 get a label. */
-function hourLabel(hour: number): string {
-  if (hour % 6 !== 0) return ''
-  const h12 = hour % 12 === 0 ? 12 : hour % 12
-  return `${h12}${hour < 12 ? 'a' : 'p'}`
-}
 
 export default function Today() {
   const c = usePalette()
