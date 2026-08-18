@@ -1,5 +1,6 @@
 import { Text, View } from 'react-native'
 import Svg, { Line, Path, Rect, Text as SvgText } from 'react-native-svg'
+import { usePalette } from '../theme'
 
 /**
  * A deliberately simple bar chart, drawn with SVG.
@@ -15,23 +16,10 @@ import Svg, { Line, Path, Rect, Text as SvgText } from 'react-native-svg'
  */
 
 /**
- * The blues a bar can draw in, lightest first. The more you walked, the darker
- * the bar — one step down this list for every BAND_SIZE steps.
- *
- * It stops at a deep denim rather than going all the way to navy: past a point
- * a dark bar just reads as a black shape and you lose the sense of a ladder.
- * If you want it bolder, darken the last two; if you want it airier, lighten
- * the first two. Adding a sixth color here extends the ladder on its own.
+ * How many steps each shade covers. Every 5,000 steps moves the bar one step
+ * along the ladder of blues. The ladder itself lives in `src/theme.ts`, because
+ * it has to be different in light and dark mode — see the note there.
  */
-const BAR_COLORS = [
-  '#b8d4ee', // under 5k   — light
-  '#7fb2e0', // 5k–10k
-  '#4a90d9', // 10k–15k    — the original blue
-  '#2f6fb5', // 15k–20k
-  '#1f5490', // 20k and up — deepest, and where the ladder stops
-]
-
-/** How many steps each shade covers. Every 5,000 steps darkens the bar once. */
 const BAND_SIZE = 5000
 
 /**
@@ -61,11 +49,11 @@ export function BarChart({
 }: {
   data: { label: string; value: number }[]
   height?: number
-  /** Horizontal goal lines, in steps. The biggest one is *the* goal — it draws
-   *  strongest, and any bar that reaches it turns warm. The rest are quieter
-   *  markers along the way. */
+  /** Horizontal goal lines, in steps. The biggest one is *the* goal and draws
+   *  strongest; the rest are quieter markers along the way. */
   goals?: number[]
 }) {
+  const c = usePalette()
   const width = 340
   const labelSpace = 18 // room under the chart for the date labels
   const goalLabelSpace = 30 // room at the right for the "5k" / "10k" labels
@@ -103,14 +91,14 @@ export function BarChart({
             y1={y}
             x2={plotWidth}
             y2={y}
-            stroke={isMain ? '#b3b3b3' : '#dcdcdc'}
+            stroke={isMain ? c.goalLine : c.goalLineFaint}
             strokeWidth={isMain ? 1 : 0.75}
             strokeDasharray={isMain ? '5 4' : '3 4'}
           />
         ))}
 
         {goalLines.map(({ goal, y, isMain }) => (
-          <SvgText key={goal} x={plotWidth + 5} y={y + 3.5} fontSize={9} fill={isMain ? '#8c8c8c' : '#bdbdbd'}>
+          <SvgText key={goal} x={plotWidth + 5} y={y + 3.5} fontSize={9} fill={isMain ? c.goalLabel : c.goalLabelFaint}>
             {formatGoal(goal)}
           </SvgText>
         ))}
@@ -124,7 +112,7 @@ export function BarChart({
           // Never round more than half the bar's height, or a short day turns
           // into a pill instead of a bar.
           const r = Math.min(barWidth * ROUNDNESS, barHeight / 2)
-          const fill = colorFor(d.value)
+          const fill = colorFor(d.value, c.bars)
 
           return ROUNDING === 'all' ? (
             <Rect key={d.label} x={x} y={y} width={barWidth} height={barHeight} rx={r} fill={fill} />
@@ -134,24 +122,25 @@ export function BarChart({
         })}
 
         {data.map((d, i) => (
-          <SvgText key={d.label} x={i * slot + slot / 2} y={height - 4} fontSize={10} fill="#666" textAnchor="middle">
+          <SvgText key={d.label} x={i * slot + slot / 2} y={height - 4} fontSize={10} fill={c.muted} textAnchor="middle">
             {d.label}
           </SvgText>
         ))}
       </Svg>
-      {data.length === 0 && <Text>No data yet</Text>}
+      {data.length === 0 && <Text style={{ color: c.muted }}>No data yet</Text>}
     </View>
   )
 }
 
 /**
- * Which blue a day draws in: one shade darker for every BAND_SIZE steps, and
- * everything past the last shade stays at the darkest. 4,999 steps is the
- * lightest; 5,000 moves up a shade; 40,000 draws the same as 20,000.
+ * Which blue a day draws in: one rung along the ladder for every BAND_SIZE
+ * steps, holding at the last rung after that. 4,999 steps sits on rung one,
+ * 5,000 moves up one, and 40,000 draws the same as 20,000. Which end of the
+ * ladder is light and which is dark depends on the mode — see `src/theme.ts`.
  */
-function colorFor(value: number) {
+function colorFor(value: number, ladder: string[]) {
   const band = Math.floor(value / BAND_SIZE)
-  return BAR_COLORS[Math.min(band, BAR_COLORS.length - 1)]
+  return ladder[Math.min(band, ladder.length - 1)]
 }
 
 /** 5000 → "5k", 10000 → "10k", 7500 → "7.5k". */

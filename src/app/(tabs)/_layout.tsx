@@ -1,5 +1,6 @@
 import { Tabs } from 'expo-router'
 import { SymbolView, type SFSymbol } from 'expo-symbols'
+import { usePalette } from '../../theme'
 
 /**
  * The tab bar.
@@ -20,12 +21,14 @@ const TABS: { name: string; title: string; symbol: SFSymbol }[] = [
   { name: 'days', title: 'Days', symbol: 'calendar' },
 ]
 
-/** The blue the selected tab lights up in — the same one the chart's bars use. */
-const ACTIVE_COLOR = '#4a90d9'
-
 export default function TabsLayout() {
+  const c = usePalette()
+
   return (
-    <Tabs screenOptions={{ tabBarActiveTintColor: ACTIVE_COLOR }}>
+    // Only the tint is set here. The bar's own background is left to iOS on
+    // purpose — it already knows how to look right in light and dark, and
+    // painting over it replaces a material the system draws better than we can.
+    <Tabs screenOptions={{ tabBarActiveTintColor: c.accent, tabBarInactiveTintColor: c.muted }}>
       {TABS.map(({ name, title, symbol }) => (
         <Tabs.Screen
           key={name}
