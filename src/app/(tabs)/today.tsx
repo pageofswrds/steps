@@ -2,6 +2,7 @@ import { Link, Tabs, router } from 'expo-router'
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useState } from 'react'
 import { Image } from 'expo-image'
+import Animated, { SlideInLeft, SlideInRight } from 'react-native-reanimated'
 import { Picker, Text as SwiftText } from '@expo/ui/swift-ui'
 import { pickerStyle, tag } from '@expo/ui/swift-ui/modifiers'
 import { SymbolView } from 'expo-symbols'
@@ -10,7 +11,19 @@ import { MonthCalendar } from '../../components/MonthCalendar'
 import { addDays, dateKey, syncHealth, todayKey, useDailySteps, useEntries, useHourlySteps, useSyncStatus, useToday } from '../../data'
 import { usePalette } from '../../theme'
 
-type Range = 'day' | 'week'
+/**
+ * Three shapes of chart, all swipeable back through time:
+ *
+ *   day   — one day, hour by hour
+ *   7days — a rolling week: the 7 days ending today (or ending wherever
+ *           you've swiped back to)
+ *   week  — a CALENDAR week, Sunday to Saturday, labelled S M T W T F S.
+ *           The days that haven't happened yet hold their place as dots.
+ */
+type Range = 'day' | '7days' | 'week'
+
+/** Sunday-first, to label the calendar week's columns. */
+const WEEKDAY_LETTERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 
 /** '12a' / '6a' / '12p' / '6p' — only multiples of 6 get a label. */
 function hourLabel(hour: number): string {
@@ -36,15 +49,28 @@ function hourRange(hour: number): string {
 export default function Today() {
   const c = usePalette()
   const [refreshing, setRefreshing] = useState(false)
-  const [range, setRange] = useState<Range>('week')
+  const [range, setRange] = useState<Range>('7days')
+  // How many pages the chart has been swiped back from "now" — 0 is today /
+  // this week. Each swipe right adds one; you can't swipe into the future.
+  const [back, setBack] = useState(0)
+  // Which way the last swipe went, so the fresh page slides in from that side.
+  const [cameFrom, setCameFrom] = useState<1 | -1>(1)
   const [showCalendar, setShowCalendar] = useState(false)
   const today = useToday()
-  const weekStart = dateKey(addDays(new Date(), -6))
-  const week = useDailySteps({ start: weekStart, end: todayKey() })
-  const hours = useHourlySteps(todayKey())
-  // The journal follows the picker, like the chart does: Day shows today's
-  // entries, Week shows the last 7 days'.
-  const entries = useEntries(range === 'day' ? { start: todayKey(), end: todayKey() } : { start: weekStart, end: todayKey() })
+
+  // The visible window, worked out from the range and how far back we've
+  // swiped. `day` pages one day at a time; the other two page seven.
+  const dayDate = dateKey(addDays(new Date(), -back))
+  const sundayOffset = new Date().getDay() // days since Sunday, 0–6
+  const winStart =
+    range === 'week' ? dateKey(addDays(new Date(), -sundayOffset - back * 7)) : dateKey(addDays(new Date(), -back * 7 - 6))
+  const winEnd = range === 'week' ? dateKey(addDays(new Date(), -sundayOffset - back * 7 + 6)) : dateKey(addDays(new Date(), -back * 7))
+
+  const days = useDailySteps({ start: winStart, end: winEnd })
+  const hours = useHourlySteps(range === 'day' ? dayDate : todayKey())
+  // The journal follows the chart: whatever window you're looking at, those
+  // are the entries below.
+  const entries = useEntries(range === 'day' ? { start: dayDate, end: dayDate } : { start: winStart, end: winEnd })
   const { lastSyncedAt, permissionState } = useSyncStatus()
 
   const refresh = async () => {
@@ -56,13 +82,35 @@ export default function Today() {
   // '2026-08-17' → 'Sun, Aug 17' (noon dodges timezone edge cases)
   const formatDate = (date: string) =>
     new Date(`${date}T12:00:00`).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
+  // '2026-08-17' → 'Aug 17', for captions that name a whole stretch
+  const formatShort = (date: string) => new Date(`${date}T12:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 
   const km = (today.distanceMeters / 1000).toFixed(1)
-  // `detail` is what the callout says when a bar is tapped.
+
+  // `detail` is what the callout says when a bar is held; `future` marks the
+  // calendar week's still-to-come days.
   const chartData =
     range === 'day'
       ? hours.map((h) => ({ label: hourLabel(h.hour), value: h.steps, detail: hourRange(h.hour) }))
-      : week.map((d) => ({ label: d.date.slice(8), value: d.steps, detail: formatDate(d.date) }))
+      : days.map((d, i) => ({
+          label: range === 'week' ? WEEKDAY_LETTERS[i] : d.date.slice(8),
+          value: d.steps,
+          detail: formatDate(d.date),
+          future: d.date > todayKey(),
+        }))
+
+  const caption =
+    back === 0
+      ? { day: 'today by hour', '7days': 'last 7 days', week: 'this week' }[range]
+      : range === 'day'
+        ? `${formatDate(dayDate)}, by hour`
+        : `${formatShort(winStart)} – ${formatShort(winEnd)}`
+
+  /** The chart's swipe: +1 comes forward in time, -1 goes back. */
+  const page = (delta: 1 | -1) => {
+    setCameFrom(delta)
+    setBack((b) => Math.max(0, b - delta))
+  }
 
   return (
     <ScrollView
@@ -86,27 +134,37 @@ export default function Today() {
         selection={range}
         onSelectionChange={(selection) => {
           setRange(selection as Range)
+          setBack(0) // a new shape starts at now, not wherever you'd swiped to
           setShowCalendar(false) // picking a range always leaves the calendar
         }}
         modifiers={[pickerStyle('segmented')]}
       >
         <SwiftText modifiers={[tag('day')]}>Day</SwiftText>
+        <SwiftText modifiers={[tag('7days')]}>7 Days</SwiftText>
         <SwiftText modifiers={[tag('week')]}>Week</SwiftText>
       </Picker>
       {showCalendar ? (
         <MonthCalendar onSelectDay={(date) => router.push({ pathname: '/day/[date]', params: { date } })} />
       ) : (
         <View style={styles.chart}>
-          <Text style={[styles.caption, { color: c.muted }]}>{range === 'day' ? 'today by hour' : 'last 7 days'}</Text>
-          {/* `key={range}` remounts the chart when the picker flips, so a
-              selection made in one view doesn't linger into the other. In Week
-              view the callout links through to that day's screen; hours have
-              no screen of their own, so Day view is look-only. */}
-          <BarChart
-            key={range}
-            data={chartData}
-            onDetailPress={range === 'week' ? (i) => router.push({ pathname: '/day/[date]', params: { date: week[i].date } }) : undefined}
-          />
+          <Text style={[styles.caption, { color: c.muted }]}>{caption}</Text>
+          {/* The key remounts the chart whenever the page or the picker
+              changes — the fresh page slides in from the side you swiped, and
+              a selection never lingers from one view into another. Day bars
+              (7 Days and Week alike) link through to that day's screen; hours
+              have no screen of their own, so Day view is look-only. */}
+          <Animated.View
+            key={`${range}-${back}`}
+            entering={cameFrom === -1 ? SlideInLeft.duration(180) : SlideInRight.duration(180)}
+          >
+            <BarChart
+              data={chartData}
+              onPage={page}
+              onDetailPress={
+                range !== 'day' ? (i) => router.push({ pathname: '/day/[date]', params: { date: days[i].date } }) : undefined
+              }
+            />
+          </Animated.View>
         </View>
       )}
       {permissionState === 'shouldRequest' && (
@@ -117,8 +175,8 @@ export default function Today() {
       <Link href="/settings" style={[styles.link, { color: c.accent }]}>
         {lastSyncedAt ? `last synced ${new Date(lastSyncedAt).toLocaleTimeString()}` : 'not synced yet'}
       </Link>
-      {/* The journal, in full, each entry on its own card. Follows the picker:
-          today's entries in Day view, the last 7 days' in Week. Not tappable yet. */}
+      {/* The journal, in full, each entry on its own card, following the
+          chart's window. Not tappable yet. */}
       {entries.map((e) => (
         <View key={e.id} style={[styles.journalCard, { backgroundColor: c.card }]}>
           <Text style={[styles.journalDate, { color: c.muted }]}>{formatDate(e.date)}</Text>

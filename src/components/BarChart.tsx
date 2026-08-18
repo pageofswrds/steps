@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import { Text, View } from 'react-native'
 import { Gesture, GestureDetector } from 'react-native-gesture-handler'
 import * as Haptics from 'expo-haptics'
-import Svg, { Line, Path, Rect, Text as SvgText } from 'react-native-svg'
+import Svg, { Circle, Line, Path, Rect, Text as SvgText } from 'react-native-svg'
 import { usePalette } from '../theme'
 
 /**
@@ -13,10 +13,11 @@ import { usePalette } from '../theme'
  *   2. Divide the width into one slot per data point.
  *   3. Draw a bar per point whose height is value / max of the drawing area.
  *
- * The chart is also touchable, the way Apple Health's is: tap a bar (or touch
- * and slide across the chart) and that bar stays bright while the others dim,
- * with a little callout above it showing the exact number. How that works is
- * explained where it happens, below.
+ * The chart is also touchable, the way Apple Health's is: tap a bar (or hold a
+ * beat, then slide) and that bar stays bright while the others dim, with a
+ * little callout above it showing the exact number — and a plain sideways
+ * swipe turns the page to the week before. How that works is explained where
+ * it happens, below.
  *
  * Ideas still to try: a color per weekday, animating heights with
  * react-native-reanimated, or rebuilding it in @shopify/react-native-skia
@@ -61,6 +62,7 @@ export function BarChart({
   height = 160,
   goals = [5000, 10000],
   onDetailPress,
+  onPage,
 }: {
   data: {
     label: string
@@ -68,6 +70,10 @@ export function BarChart({
     /** What the callout calls this bar — 'Tue, Aug 12', '2–3 PM'. Falls back
      *  to `label` if you don't provide one. */
     detail?: string
+    /** A day that hasn't happened yet — the rest of this week, say. It draws
+     *  as a faint dot on the floor instead of a bar, and the finger skips it:
+     *  no selection, no callout. */
+    future?: boolean
   }[]
   height?: number
   /** Horizontal goal lines, in steps. The biggest one is *the* goal and draws
@@ -78,6 +84,11 @@ export function BarChart({
    *  The Today screen uses it to open the day behind a week bar. Leave it off
    *  and a second tap just clears the selection. */
   onDetailPress?: (index: number) => void
+  /** If given, a sideways swipe across the chart calls this: +1 for forward in
+   *  time (finger moving left), -1 for back (finger moving right). The chart
+   *  knows nothing about dates — the screen decides what a page IS and hands
+   *  back new data. */
+  onPage?: (delta: 1 | -1) => void
 }) {
   const c = usePalette()
   const width = 340
@@ -144,6 +155,7 @@ export function BarChart({
 
   const select = (index: number) => {
     if (index === selectedRef.current) return
+    if (data[index]?.future) return // days that haven't happened can't be picked
     selectedRef.current = index
     setSelected(index)
     // The tiny click you feel as the selection moves bar to bar.
@@ -155,17 +167,22 @@ export function BarChart({
     setSelected(null)
   }
 
-  // TOUCH, in two gestures raced against each other — whichever recognizes
-  // first wins:
+  // TOUCH, in three gestures raced against each other — whichever recognizes
+  // first wins. This is Apple Health's own split:
   //
-  //   tap — select the bar under the finger. Tapping the bar that's already
-  //         selected follows the link if there is one, otherwise deselects.
-  //         Tapping the callout follows the link. Tapping the gutter clears.
+  //   tap   — select the bar under the finger. Tapping the bar that's already
+  //           selected follows the link if there is one, otherwise deselects.
+  //           Tapping the callout follows the link. Tapping the gutter, or a
+  //           day that hasn't happened yet, clears.
   //
-  //   pan — Apple Health's scrub: touch and slide sideways and the selection
-  //         follows your finger. It only claims the touch after ~10 points of
-  //         HORIZONTAL movement and gives up on vertical movement, so it never
-  //         steals the screen's up-and-down scrolling.
+  //   swipe — a plain sideways drag turns the page: finger moving right goes
+  //           back in time, left comes forward. It claims the touch after ~15
+  //           points of HORIZONTAL movement and gives up on vertical movement,
+  //           so it never steals the screen's up-and-down scrolling.
+  //
+  //   scrub — touch and HOLD (a beat, ~220ms, finger still), then drag, and
+  //           the selection follows your finger instead of the page turning.
+  //           Moving before the hold is up hands the touch to the swipe.
   //
   // `runOnJS(true)` just means "run these handlers as ordinary JavaScript" —
   // without it, gesture code runs on the animation thread and can't touch
@@ -183,16 +200,17 @@ export function BarChart({
         }
       }
       const index = indexAt(e.x)
-      if (index === null) return clear()
+      if (index === null || data[index]?.future) return clear()
       if (index === current) return onDetailPress ? onDetailPress(index) : clear()
       select(index)
     })
 
-  const pan = Gesture.Pan()
+  const scrub = Gesture.Pan()
     .runOnJS(true)
-    .activeOffsetX([-10, 10])
-    .failOffsetY([-12, 12])
+    .activateAfterLongPress(220)
     .onStart((e) => {
+      // The little knock that says "you're scrubbing now, not swiping".
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
       const index = indexAt(e.x)
       if (index !== null) select(index)
     })
@@ -201,10 +219,20 @@ export function BarChart({
       if (index !== null) select(index)
     })
 
+  const swipe = Gesture.Pan()
+    .runOnJS(true)
+    .activeOffsetX([-15, 15])
+    .failOffsetY([-12, 12])
+    .onEnd((e) => {
+      // Which way, and far enough to mean it? A hesitant wiggle turns nothing.
+      if (e.translationX > 40) onPage?.(-1)
+      else if (e.translationX < -40) onPage?.(1)
+    })
+
   const callout = sel !== null ? calloutFor(sel) : null
 
   return (
-    <GestureDetector gesture={Gesture.Race(pan, tap)}>
+    <GestureDetector gesture={onPage ? Gesture.Race(scrub, swipe, tap) : Gesture.Race(scrub, tap)}>
       <View>
         <Svg width={width} height={svgHeight}>
           {/* The goal lines are drawn FIRST so the bars sit on top of them. The
@@ -229,6 +257,11 @@ export function BarChart({
           ))}
 
           {data.map((d, i) => {
+            // A day still to come: a faint dot on the floor holds its place.
+            if (d.future) {
+              return <Circle key={i} cx={i * slot + slot / 2} cy={CALLOUT_SPACE + chartHeight - 3} r={2} fill={c.goalLineFaint} />
+            }
+
             const barHeight = (d.value / max) * chartHeight
             if (barHeight <= 0) return null // a zero day draws nothing
 
