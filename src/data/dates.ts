@@ -22,6 +22,19 @@ export function startOfDay(d: Date): Date {
   return c
 }
 
+/** The first day of d's month, time zeroed. */
+export function startOfMonth(d: Date): Date {
+  return new Date(d.getFullYear(), d.getMonth(), 1)
+}
+
+/**
+ * n months away from d — month-granular: always returns the FIRST of the
+ * shifted month. For calendar paging, where the day-of-month is irrelevant.
+ */
+export function addMonths(d: Date, n: number): Date {
+  return new Date(d.getFullYear(), d.getMonth() + n, 1)
+}
+
 /** n date keys ascending, ending at `from` (inclusive). */
 export function lastNDateKeys(n: number, from: Date = new Date()): string[] {
   const keys: string[] = []
