@@ -44,3 +44,4 @@ example
 
 # task/process scaffolding (not part of the app)
 .superpowers/
+.worktrees/
