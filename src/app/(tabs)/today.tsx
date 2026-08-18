@@ -19,6 +19,20 @@ function hourLabel(hour: number): string {
   return `${h12}${hour < 12 ? 'a' : 'p'}`
 }
 
+/** 14 → '2–3 PM', 11 → '11 AM–12 PM' — what the chart's callout calls an hour. */
+function hourRange(hour: number): string {
+  const name = (h: number) => {
+    const wrapped = h % 24
+    return `${wrapped % 12 === 0 ? 12 : wrapped % 12} ${wrapped < 12 ? 'AM' : 'PM'}`
+  }
+  const start = name(hour)
+  const end = name(hour + 1)
+  // When both ends share a meridiem, say it once: '2–3 PM', not '2 PM–3 PM'.
+  const [startNum, startHalf] = start.split(' ')
+  const [, endHalf] = end.split(' ')
+  return startHalf === endHalf ? `${startNum}–${end}` : `${start}–${end}`
+}
+
 export default function Today() {
   const c = usePalette()
   const [refreshing, setRefreshing] = useState(false)
@@ -44,10 +58,11 @@ export default function Today() {
     new Date(`${date}T12:00:00`).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
 
   const km = (today.distanceMeters / 1000).toFixed(1)
+  // `detail` is what the callout says when a bar is tapped.
   const chartData =
     range === 'day'
-      ? hours.map((h) => ({ label: hourLabel(h.hour), value: h.steps }))
-      : week.map((d) => ({ label: d.date.slice(8), value: d.steps }))
+      ? hours.map((h) => ({ label: hourLabel(h.hour), value: h.steps, detail: hourRange(h.hour) }))
+      : week.map((d) => ({ label: d.date.slice(8), value: d.steps, detail: formatDate(d.date) }))
 
   return (
     <ScrollView
@@ -83,7 +98,15 @@ export default function Today() {
       ) : (
         <View style={styles.chart}>
           <Text style={[styles.caption, { color: c.muted }]}>{range === 'day' ? 'today by hour' : 'last 7 days'}</Text>
-          <BarChart data={chartData} />
+          {/* `key={range}` remounts the chart when the picker flips, so a
+              selection made in one view doesn't linger into the other. In Week
+              view the callout links through to that day's screen; hours have
+              no screen of their own, so Day view is look-only. */}
+          <BarChart
+            key={range}
+            data={chartData}
+            onDetailPress={range === 'week' ? (i) => router.push({ pathname: '/day/[date]', params: { date: week[i].date } }) : undefined}
+          />
         </View>
       )}
       {permissionState === 'shouldRequest' && (
