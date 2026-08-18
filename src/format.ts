@@ -18,3 +18,20 @@ export function hourLabel(hour: number): string {
   const h12 = hour % 12 === 0 ? 12 : hour % 12
   return `${h12}${hour < 12 ? 'a' : 'p'}`
 }
+
+/**
+ * An hour as the stretch it covers, the way the chart's callout says it:
+ * `14 → '2–3 PM'`, `11 → '11 AM–12 PM'`. When both ends share a meridiem it's
+ * said once — '2–3 PM', not '2 PM–3 PM'.
+ */
+export function hourRange(hour: number): string {
+  const name = (h: number) => {
+    const wrapped = h % 24
+    return `${wrapped % 12 === 0 ? 12 : wrapped % 12} ${wrapped < 12 ? 'AM' : 'PM'}`
+  }
+  const start = name(hour)
+  const end = name(hour + 1)
+  const [startNum, startHalf] = start.split(' ')
+  const [, endHalf] = end.split(' ')
+  return startHalf === endHalf ? `${startNum}–${end}` : `${start}–${end}`
+}
