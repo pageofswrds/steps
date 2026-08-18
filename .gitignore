@@ -44,3 +44,6 @@ example
 
 # task/process scaffolding (not part of the app)
 .superpowers/
+
+# concurrent-work isolation
+.worktrees/
