@@ -116,7 +116,10 @@ export function BarChart({
     .map((goal) => ({ goal, y: yFor(goal), isMain: goal === mainGoal }))
 
   return (
-    <View onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
+    // alignSelf 'stretch' matters: dropped inside a parent that centers its
+    // children, a plain View shrinks to fit its contents — and since this one's
+    // contents are sized FROM its width, it would collapse to nothing.
+    <View style={{ alignSelf: 'stretch' }} onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
       {width > 0 && (
       <Svg width={width} height={height}>
         {/* The goal lines are drawn FIRST so the bars sit on top of them. The

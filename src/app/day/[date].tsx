@@ -29,9 +29,6 @@ export default function DayDetail() {
       {walkedAtAll && (
         <View style={styles.section}>
           <Text style={[styles.heading, { color: c.text }]}>Through the day</Text>
-          {/* Negative margin cancels the page's 16pt padding, so the chart runs
-              edge to edge while the text around it stays inset. */}
-          <View style={styles.bleed}>
           <BarChart
             data={hourly}
             goals={[]} // no goal lines: nobody walks 5,000 steps in one hour
@@ -39,7 +36,6 @@ export default function DayDetail() {
             barFill={0.82} // 24 bars need to be fatter than 7 do
             labelEvery={6} // four labels across the day, not twenty-four
           />
-          </View>
         </View>
       )}
       {workouts.length > 0 && (
@@ -95,7 +91,6 @@ const styles = StyleSheet.create({
   big: { fontSize: 40, fontWeight: 'bold' },
   caption: {},
   section: { marginTop: 16, gap: 8 },
-  bleed: { marginHorizontal: -16 }, // must match container's padding
   heading: { fontWeight: 'bold', fontSize: 16 },
   entry: { paddingVertical: 8 },
   thumbs: { flexDirection: 'row', gap: 4, marginTop: 4 },
