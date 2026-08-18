@@ -3,23 +3,31 @@ import { router, useLocalSearchParams } from 'expo-router'
 import { useState } from 'react'
 import { Button, ScrollView, StyleSheet, Text, TextInput } from 'react-native'
 import { deleteEntry, updateEntry, useEntry } from '../../data'
+import { usePalette } from '../../theme'
 
 export default function EntryDetail() {
+  const c = usePalette()
   const { id } = useLocalSearchParams<{ id: string }>()
   const entry = useEntry(id)
   const [draft, setDraft] = useState<string | null>(null)
 
-  if (!entry) return <Text style={styles.missing}>Entry not found.</Text>
+  if (!entry) return <Text style={[styles.missing, { color: c.muted }]}>Entry not found.</Text>
 
   const editing = draft !== null
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.date}>{entry.date}</Text>
+    <ScrollView style={{ backgroundColor: c.background }} contentContainerStyle={styles.container}>
+      <Text style={[styles.date, { color: c.text }]}>{entry.date}</Text>
       {editing ? (
-        <TextInput style={styles.input} multiline value={draft} onChangeText={setDraft} autoFocus />
+        <TextInput
+          style={[styles.input, { borderColor: c.hairline, color: c.text }]}
+          multiline
+          value={draft}
+          onChangeText={setDraft}
+          autoFocus
+        />
       ) : (
-        <Text style={styles.body}>{entry.text}</Text>
+        <Text style={[styles.body, { color: c.text }]}>{entry.text}</Text>
       )}
       {entry.photos.map((p) => (
         <Image key={p.id} source={p.uri} style={styles.photo} contentFit="cover" />
@@ -37,7 +45,7 @@ export default function EntryDetail() {
       )}
       <Button
         title="Delete entry"
-        color="#c0392b"
+        color={c.danger}
         onPress={() => {
           deleteEntry(entry.id)
           router.back()
@@ -49,9 +57,9 @@ export default function EntryDetail() {
 
 const styles = StyleSheet.create({
   container: { padding: 16, gap: 12 },
-  missing: { padding: 24, color: '#666' },
+  missing: { padding: 24 },
   date: { fontWeight: 'bold', fontSize: 16 },
   body: { fontSize: 16 },
-  input: { minHeight: 120, borderWidth: StyleSheet.hairlineWidth, borderColor: '#ccc', borderRadius: 8, padding: 12, fontSize: 16 },
+  input: { minHeight: 120, borderWidth: StyleSheet.hairlineWidth, borderRadius: 8, padding: 12, fontSize: 16 },
   photo: { width: '100%', aspectRatio: 1, borderRadius: 8 },
 })

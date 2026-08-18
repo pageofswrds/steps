@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native'
 import { addDays, addMonths, dateKey, startOfMonth, todayKey, useDailySteps } from '../data'
+import { usePalette } from '../theme'
 
 const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'] // Sunday-first
 const MONTH_NAMES = [
@@ -25,6 +26,7 @@ function compact(steps: number): string {
  * direction. One data query spans all three pages, so swiping never pops.
  */
 export function MonthCalendar({ onSelectDay }: { onSelectDay: (date: string) => void }) {
+  const c = usePalette()
   const { width: screenWidth } = useWindowDimensions()
   const pageWidth = screenWidth - 48 // matches the Today screen's 24px padding
   const pager = useRef<ScrollView>(null)
@@ -47,12 +49,12 @@ export function MonthCalendar({ onSelectDay }: { onSelectDay: (date: string) => 
 
   return (
     <View style={styles.container}>
-      <Text style={styles.monthName}>
+      <Text style={[styles.monthName, { color: c.text }]}>
         {MONTH_NAMES[month.getMonth()]} {month.getFullYear()}
       </Text>
       <View style={[styles.weekdayRow, { width: pageWidth }]}>
         {WEEKDAYS.map((d, i) => (
-          <Text key={i} style={styles.weekday}>
+          <Text key={i} style={[styles.weekday, { color: c.muted }]}>
             {d}
           </Text>
         ))}
@@ -123,10 +125,11 @@ function DayCell({
   size: number
   onSelectDay: (date: string) => void
 }) {
+  const c = usePalette()
   return (
     <Pressable style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }} disabled={isFuture} onPress={() => onSelectDay(date)}>
-      <Text style={[styles.dayNumber, isToday && styles.todayNumber, isFuture && styles.futureText]}>{Number(date.slice(8))}</Text>
-      <Text style={[styles.daySteps, isFuture && styles.futureText]}>{steps > 0 ? compact(steps) : '·'}</Text>
+      <Text style={[styles.dayNumber, { color: c.text }, isToday && { color: c.accent, fontWeight: 'bold' }, isFuture && { color: c.hairline }]}>{Number(date.slice(8))}</Text>
+      <Text style={[styles.daySteps, { color: c.muted }, isFuture && { color: c.hairline }]}>{steps > 0 ? compact(steps) : '·'}</Text>
     </Pressable>
   )
 }
@@ -135,10 +138,8 @@ const styles = StyleSheet.create({
   container: { marginTop: 16, alignItems: 'center', gap: 8 },
   monthName: { fontSize: 18, fontWeight: '600' },
   weekdayRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  weekday: { width: 32, textAlign: 'center', fontSize: 12, color: '#666' },
+  weekday: { width: 32, textAlign: 'center', fontSize: 12 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
   dayNumber: { fontSize: 15 },
-  todayNumber: { fontWeight: 'bold', color: '#4a90d9' },
-  daySteps: { fontSize: 10, color: '#666', marginTop: 2 },
-  futureText: { color: '#ccc' },
+  daySteps: { fontSize: 10, marginTop: 2 },
 })

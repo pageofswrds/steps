@@ -5,8 +5,10 @@ import { router, useLocalSearchParams } from 'expo-router'
 import { useState } from 'react'
 import { Button, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import { addEntry, dateKey } from '../../data'
+import { usePalette } from '../../theme'
 
 export default function NewEntry() {
+  const c = usePalette()
   // Day detail can pre-fill the date: /entry/new?date=2026-08-10
   const params = useLocalSearchParams<{ date?: string }>()
   const [date, setDate] = useState(params.date ? new Date(`${params.date}T12:00:00`) : new Date())
@@ -30,11 +32,12 @@ export default function NewEntry() {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView style={{ backgroundColor: c.background }} contentContainerStyle={styles.container}>
       <DateTimePicker value={date} mode="date" display="compact" maximumDate={new Date()} onChange={(_, d) => d && setDate(d)} />
       <TextInput
-        style={styles.input}
+        style={[styles.input, { borderColor: c.hairline, color: c.text }]}
         placeholder="What happened today?"
+        placeholderTextColor={c.muted}
         multiline
         value={text}
         onChangeText={setText}
@@ -47,15 +50,15 @@ export default function NewEntry() {
         ))}
       </View>
       <Button title={saving ? 'Saving…' : 'Save'} onPress={save} disabled={saving || (!text && photoUris.length === 0)} />
-      {saving && <Text style={styles.note}>If a photo fails to copy, the entry still saves without it.</Text>}
+      {saving && <Text style={[styles.note, { color: c.muted }]}>If a photo fails to copy, the entry still saves without it.</Text>}
     </ScrollView>
   )
 }
 
 const styles = StyleSheet.create({
   container: { padding: 16, gap: 12 },
-  input: { minHeight: 120, borderWidth: StyleSheet.hairlineWidth, borderColor: '#ccc', borderRadius: 8, padding: 12, fontSize: 16 },
+  input: { minHeight: 120, borderWidth: StyleSheet.hairlineWidth, borderRadius: 8, padding: 12, fontSize: 16 },
   thumbs: { flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
   thumb: { width: 72, height: 72, borderRadius: 4 },
-  note: { color: '#666', fontSize: 12 },
+  note: { fontSize: 12 },
 })

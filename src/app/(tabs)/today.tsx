@@ -8,6 +8,7 @@ import { SymbolView } from 'expo-symbols'
 import { BarChart } from '../../components/BarChart'
 import { MonthCalendar } from '../../components/MonthCalendar'
 import { addDays, dateKey, syncHealth, todayKey, useDailySteps, useEntries, useHourlySteps, useSyncStatus, useToday } from '../../data'
+import { usePalette } from '../../theme'
 
 type Range = 'day' | 'week'
 
@@ -19,6 +20,7 @@ function hourLabel(hour: number): string {
 }
 
 export default function Today() {
+  const c = usePalette()
   const [refreshing, setRefreshing] = useState(false)
   const [range, setRange] = useState<Range>('week')
   const [showCalendar, setShowCalendar] = useState(false)
@@ -48,19 +50,23 @@ export default function Today() {
       : week.map((d) => ({ label: d.date.slice(8), value: d.steps }))
 
   return (
-    <ScrollView contentContainerStyle={styles.container} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}>
+    <ScrollView
+      style={{ backgroundColor: c.background }}
+      contentContainerStyle={styles.container}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={c.muted} />}
+    >
       {/* the calendar button lives in the screen's own header, top right */}
       <Tabs.Screen
         options={{
           headerRight: () => (
             <Pressable onPress={() => setShowCalendar((v) => !v)} hitSlop={12}>
-              <SymbolView name={showCalendar ? 'chart.bar.fill' : 'calendar'} size={22} tintColor="#4a90d9" />
+              <SymbolView name={showCalendar ? 'chart.bar.fill' : 'calendar'} size={22} tintColor={c.accent} />
             </Pressable>
           ),
         }}
       />
-      <Text style={styles.steps}>{today.steps.toLocaleString()}</Text>
-      <Text style={styles.caption}>steps today · {km} km</Text>
+      <Text style={[styles.steps, { color: c.text }]}>{today.steps.toLocaleString()}</Text>
+      <Text style={[styles.caption, { color: c.muted }]}>steps today · {km} km</Text>
       <Picker
         selection={range}
         onSelectionChange={(selection) => {
@@ -76,24 +82,24 @@ export default function Today() {
         <MonthCalendar onSelectDay={(date) => router.push({ pathname: '/day/[date]', params: { date } })} />
       ) : (
         <View style={styles.chart}>
-          <Text style={styles.caption}>{range === 'day' ? 'today by hour' : 'last 7 days'}</Text>
+          <Text style={[styles.caption, { color: c.muted }]}>{range === 'day' ? 'today by hour' : 'last 7 days'}</Text>
           <BarChart data={chartData} />
         </View>
       )}
       {permissionState === 'shouldRequest' && (
-        <Link href="/settings" style={styles.link}>
+        <Link href="/settings" style={[styles.link, { color: c.accent }]}>
           Connect Apple Health to see your steps →
         </Link>
       )}
-      <Link href="/settings" style={styles.link}>
+      <Link href="/settings" style={[styles.link, { color: c.accent }]}>
         {lastSyncedAt ? `last synced ${new Date(lastSyncedAt).toLocaleTimeString()}` : 'not synced yet'}
       </Link>
       {/* The journal, in full, each entry on its own card. Follows the picker:
           today's entries in Day view, the last 7 days' in Week. Not tappable yet. */}
       {entries.map((e) => (
-        <View key={e.id} style={styles.journalCard}>
-          <Text style={styles.journalDate}>{formatDate(e.date)}</Text>
-          <Text style={styles.journalText}>{e.text}</Text>
+        <View key={e.id} style={[styles.journalCard, { backgroundColor: c.card }]}>
+          <Text style={[styles.journalDate, { color: c.muted }]}>{formatDate(e.date)}</Text>
+          <Text style={[styles.journalText, { color: c.text }]}>{e.text}</Text>
           {e.photos.length > 0 && (
             <View style={styles.thumbs}>
               {e.photos.map((p) => (
@@ -110,12 +116,12 @@ export default function Today() {
 const styles = StyleSheet.create({
   container: { padding: 24, gap: 12, alignItems: 'center' },
   steps: { fontSize: 64, fontWeight: 'bold', marginTop: 24 },
-  caption: { fontSize: 14, color: '#666' },
+  caption: { fontSize: 14 },
   chart: { marginTop: 24, gap: 8 },
-  journalCard: { alignSelf: 'stretch', backgroundColor: '#e4eefa', borderRadius: 12, padding: 12, marginTop: 12, gap: 6 },
-  journalDate: { fontSize: 12, fontWeight: 'bold', color: '#666' },
+  journalCard: { alignSelf: 'stretch', borderRadius: 12, padding: 12, marginTop: 12, gap: 6 },
+  journalDate: { fontSize: 12, fontWeight: 'bold' },
   journalText: { fontSize: 15, lineHeight: 21 },
   thumbs: { flexDirection: 'row', gap: 4 },
   thumb: { width: 48, height: 48, borderRadius: 4 },
-  link: { marginTop: 16, color: '#4a90d9' },
+  link: { marginTop: 16 },
 })
