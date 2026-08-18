@@ -3,6 +3,7 @@ import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'r
 import { useState } from 'react'
 import { Image } from 'expo-image'
 import Animated, { SlideInLeft, SlideInRight } from 'react-native-reanimated'
+import { Host } from '@expo/ui'
 import { Picker, Text as SwiftText } from '@expo/ui/swift-ui'
 import { pickerStyle, tag } from '@expo/ui/swift-ui/modifiers'
 import { SymbolView } from 'expo-symbols'
@@ -110,19 +111,24 @@ export default function Today() {
       />
       <Text style={[styles.steps, { color: c.text }]}>{today.steps.toLocaleString()}</Text>
       <Text style={[styles.caption, { color: c.muted }]}>steps today · {km} km</Text>
-      <Picker
-        selection={range}
-        onSelectionChange={(selection) => {
-          setRange(selection as Range)
-          setBack(0) // a new shape starts at now, not wherever you'd swiped to
-          setShowCalendar(false) // picking a range always leaves the calendar
-        }}
-        modifiers={[pickerStyle('segmented')]}
-      >
-        <SwiftText modifiers={[tag('day')]}>Day</SwiftText>
-        <SwiftText modifiers={[tag('7days')]}>7 Days</SwiftText>
-        <SwiftText modifiers={[tag('week')]}>Week</SwiftText>
-      </Picker>
+      {/* Every SwiftUI island needs a Host around it — that's the bridge that
+          gives the native view a place to live inside React Native's layout.
+          Without it the app refuses to render this screen at all. */}
+      <Host matchContents style={{ alignSelf: 'stretch' }}>
+        <Picker
+          selection={range}
+          onSelectionChange={(selection) => {
+            setRange(selection as Range)
+            setBack(0) // a new shape starts at now, not wherever you'd swiped to
+            setShowCalendar(false) // picking a range always leaves the calendar
+          }}
+          modifiers={[pickerStyle('segmented')]}
+        >
+          <SwiftText modifiers={[tag('day')]}>Day</SwiftText>
+          <SwiftText modifiers={[tag('7days')]}>7 Days</SwiftText>
+          <SwiftText modifiers={[tag('week')]}>Week</SwiftText>
+        </Picker>
+      </Host>
       {showCalendar ? (
         <MonthCalendar onSelectDay={(date) => router.push({ pathname: '/day/[date]', params: { date } })} />
       ) : (
