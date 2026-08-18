@@ -14,6 +14,12 @@ export interface HealthWorkout {
   durationS: number
 }
 
+export interface HealthHourlyTotal {
+  /** 0–23, local time. */
+  hour: number
+  steps: number
+}
+
 /** Narrow seam over Apple Health. The app only ever talks to this interface. */
 export interface HealthSource {
   isAvailable(): Promise<boolean>
@@ -22,4 +28,10 @@ export interface HealthSource {
   requestPermissions(): Promise<void>
   getDailyTotals(start: Date, end: Date): Promise<HealthDailyTotal[]>
   getWorkouts(start: Date, end: Date): Promise<HealthWorkout[]>
+  /**
+   * One day's steps broken down by hour: exactly 24 entries, hours 0–23 in
+   * local time, zeros where Health recorded nothing. Queried on demand, never
+   * stored — only the day on screen is ever asked for.
+   */
+  getHourlySteps(day: Date): Promise<HealthHourlyTotal[]>
 }

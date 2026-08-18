@@ -3,6 +3,7 @@ import { getDb } from './db/db'
 import { todayKey } from './dates'
 import { subscribe } from './emitter'
 import { getEntry, listEntries, type Entry } from './entries'
+import { emptyHours, getHourlySteps, type HourlySteps } from './hourly'
 import { getMeta } from './meta'
 import { getDailyMetrics, getWorkouts, type DailyMetric, type WorkoutRow } from './metrics'
 
@@ -40,6 +41,34 @@ export function useDailySteps(range: { start: string; end: string }): DailyMetri
  */
 export function useToday(): DailyMetric {
   return useLiveQuery(['daily_metrics'], () => getDailyMetrics({ start: todayKey(), end: todayKey() })[0], [])
+}
+
+/**
+ * One day's steps hour by hour — always 24 entries, zeros where nothing was
+ * recorded. Asked of HealthKit on demand (hourly data is not stored), and
+ * re-asked after every Health sync, so it stays fresh like everything else.
+ *
+ * ```tsx
+ * const hours = useHourlySteps(todayKey())
+ * ```
+ */
+export function useHourlySteps(date: string): HourlySteps[] {
+  const [hours, setHours] = useState<HourlySteps[]>(emptyHours)
+  useEffect(() => {
+    let alive = true
+    const run = () => {
+      getHourlySteps(date).then((h) => {
+        if (alive) setHours(h)
+      })
+    }
+    run()
+    const unsub = subscribe('daily_metrics', run)
+    return () => {
+      alive = false
+      unsub()
+    }
+  }, [date])
+  return hours
 }
 
 /**
