@@ -8,16 +8,10 @@ import { SymbolView } from 'expo-symbols'
 import { BarChart } from '../../components/BarChart'
 import { MonthCalendar } from '../../components/MonthCalendar'
 import { addDays, dateKey, syncHealth, todayKey, useDailySteps, useEntries, useHourlySteps, useSyncStatus, useToday } from '../../data'
+import { hourLabel } from '../../format'
 import { usePalette } from '../../theme'
 
 type Range = 'day' | 'week'
-
-/** '12a' / '6a' / '12p' / '6p' — only multiples of 6 get a label. */
-function hourLabel(hour: number): string {
-  if (hour % 6 !== 0) return ''
-  const h12 = hour % 12 === 0 ? 12 : hour % 12
-  return `${h12}${hour < 12 ? 'a' : 'p'}`
-}
 
 export default function Today() {
   const c = usePalette()
@@ -83,7 +77,16 @@ export default function Today() {
       ) : (
         <View style={styles.chart}>
           <Text style={[styles.caption, { color: c.muted }]}>{range === 'day' ? 'today by hour' : 'last 7 days'}</Text>
-          <BarChart data={chartData} />
+          {/* Hours need different settings from days: no goal lines (nothing
+              reaches 5,000 in an hour, and the lines would flatten every bar),
+              colour spread across the busiest hour rather than in 5,000-step
+              rungs, fatter bars because there are 24 of them, and a label every
+              sixth hour. */}
+          {range === 'day' ? (
+            <BarChart data={chartData} goals={[]} shading="by-biggest" barFill={0.82} labelEvery={6} />
+          ) : (
+            <BarChart data={chartData} />
+          )}
         </View>
       )}
       {permissionState === 'shouldRequest' && (
@@ -117,7 +120,7 @@ const styles = StyleSheet.create({
   container: { padding: 24, gap: 12, alignItems: 'center' },
   steps: { fontSize: 64, fontWeight: 'bold', marginTop: 24 },
   caption: { fontSize: 14 },
-  chart: { marginTop: 24, gap: 8 },
+  chart: { marginTop: 24, gap: 8, alignSelf: 'stretch' }, // or the centering container shrink-wraps it
   journalCard: { alignSelf: 'stretch', borderRadius: 12, padding: 12, marginTop: 12, gap: 6 },
   journalDate: { fontSize: 12, fontWeight: 'bold' },
   journalText: { fontSize: 15, lineHeight: 21 },

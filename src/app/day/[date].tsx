@@ -1,7 +1,9 @@
 import { Link, useLocalSearchParams } from 'expo-router'
 import { ScrollView, StyleSheet, Text, View } from 'react-native'
 import { Image } from 'expo-image'
-import { useDailySteps, useEntries, useWorkouts } from '../../data'
+import { BarChart } from '../../components/BarChart'
+import { useDailySteps, useEntries, useHourlySteps, useWorkouts } from '../../data'
+import { hourLabel } from '../../format'
 import { usePalette } from '../../theme'
 
 // One day: its numbers, its workouts, its memories. If the journal ever
@@ -13,11 +15,28 @@ export default function DayDetail() {
   const [metrics] = useDailySteps({ start: date, end: date })
   const entries = useEntries({ start: date, end: date })
   const workouts = useWorkouts({ start: date, end: date })
+  const hours = useHourlySteps(date)
+
+  // Every hour gets a label; the chart decides which of them to draw.
+  const hourly = hours.map((h) => ({ label: hourLabel(h.hour), value: h.steps }))
+  const walkedAtAll = hours.some((h) => h.steps > 0)
 
   return (
     <ScrollView style={{ backgroundColor: c.background }} contentContainerStyle={styles.container}>
       <Text style={[styles.big, { color: c.text }]}>{metrics?.steps.toLocaleString() ?? 0} steps</Text>
       <Text style={[styles.caption, { color: c.muted }]}>{((metrics?.distanceMeters ?? 0) / 1000).toFixed(1)} km · {date}</Text>
+      {walkedAtAll && (
+        <View style={styles.section}>
+          <Text style={[styles.heading, { color: c.text }]}>Through the day</Text>
+          <BarChart
+            data={hourly}
+            goals={[]} // no goal lines: nobody walks 5,000 steps in one hour
+            shading="by-biggest" // spread the blues across this day's busiest hour
+            barFill={0.82} // 24 bars need to be fatter than 7 do
+            labelEvery={6} // four labels across the day, not twenty-four
+          />
+        </View>
+      )}
       {workouts.length > 0 && (
         <View style={styles.section}>
           <Text style={[styles.heading, { color: c.text }]}>Walks</Text>

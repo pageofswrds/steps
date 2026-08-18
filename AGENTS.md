@@ -33,6 +33,24 @@ npm test
 
 There's also `npm run ios`, which rebuilds the whole app from scratch. It's slow and you should almost never need it. If an assistant tells you to run it, that usually means it wants to add something that needs a rebuild — see the house rules at the bottom.
 
+## Working on two things at once
+
+If you want a second copy of the app to try something in without disturbing what you've already got working:
+
+```bash
+./scripts/worktree.sh new rounder-bars
+```
+
+That gives you `.worktrees/rounder-bars` — the whole app again, on its own branch, with its own copy of everything. Two windows, two experiments, neither able to break the other. When you're done with it:
+
+```bash
+./scripts/worktree.sh rm rounder-bars
+```
+
+It takes about ten seconds rather than the several minutes `npm install` would, because it copies the dependencies from the copy you already have instead of downloading them again. On this Mac that copy is free — the disk shares the files between both until one of them changes. If the project's dependencies have actually changed since that copy, it notices and does the slow, correct thing instead.
+
+Run `npx expo start --port 8082` (or any port that isn't already in use) in the new one, so two servers don't hand each other's code to your phone.
+
 ## The shape of the code
 
 Four folders matter:

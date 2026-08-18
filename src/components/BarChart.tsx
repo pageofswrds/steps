@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Text, View } from 'react-native'
 import Svg, { Line, Path, Rect, Text as SvgText } from 'react-native-svg'
 import { usePalette } from '../theme'
@@ -16,9 +17,9 @@ import { usePalette } from '../theme'
  */
 
 /**
- * How many steps each shade covers. Every 5,000 steps moves the bar one step
- * along the ladder of blues. The ladder itself lives in `src/theme.ts`, because
- * it has to be different in light and dark mode — see the note there.
+ * How many steps each shade covers when shading `'by-steps'`. Every 5,000 steps
+ * moves the bar one rung along the ladder of blues. The ladder itself lives in
+ * `src/theme.ts`, because it has to be different in light and dark mode.
  */
 const BAND_SIZE = 5000
 
@@ -46,17 +47,49 @@ export function BarChart({
   data,
   height = 160,
   goals = [5000, 10000],
+  shading = 'by-steps',
+  barFill = 0.6,
+  labelEvery = 1,
 }: {
   data: { label: string; value: number }[]
   height?: number
   /** Horizontal goal lines, in steps. The biggest one is *the* goal and draws
-   *  strongest; the rest are quieter markers along the way. */
+   *  strongest; the rest are quieter markers along the way. Pass `[]` for none —
+   *  which is what you want for a chart of hours, since no single hour comes
+   *  anywhere near a daily goal and the lines would flatten every bar. */
   goals?: number[]
+  /**
+   * How the colour ladder is decided.
+   *
+   *   'by-steps'   — a rung every 5,000 steps. Right for whole days, where the
+   *                  colour means a fixed amount of walking.
+   *   'by-biggest' — the ladder is spread across whatever the biggest bar on
+   *                  screen is. Right for hours, where nothing gets close to
+   *                  5,000 and every bar would otherwise come out the same
+   *                  pale blue.
+   */
+  shading?: 'by-steps' | 'by-biggest'
+  /** How much of its slot each bar fills, 0 to 1. The rest is the gap. Thin
+   *  charts with many bars want this higher — 24 hourly bars at 0.6 look like
+   *  hairs. */
+  barFill?: number
+  /** Draw every Nth label. 1 labels every bar; 6 labels every sixth, which is
+   *  what 24 hours needs to stay readable. Labels need not be unique — bars are
+   *  identified by position, not by their text. */
+  labelEvery?: number
 }) {
   const c = usePalette()
-  const width = 340
-  const labelSpace = 18 // room under the chart for the date labels
-  const goalLabelSpace = 30 // room at the right for the "5k" / "10k" labels
+
+  // The chart fills whatever it's given rather than being a fixed size, so it
+  // stretches to the screen it's on. `onLayout` below reports that width the
+  // first time the view is measured, and again if it ever changes (rotating the
+  // phone, say). Until then there's nothing to draw.
+  const [width, setWidth] = useState(0)
+
+  const labelSpace = 18 // room under the chart for the labels
+  // Only reserve room at the right when there are goal labels to put there.
+  // A chart with no goal lines has no reason to leave a gap.
+  const goalLabelSpace = goals.length > 0 ? 30 : 0
   const chartHeight = height - labelSpace
   const plotWidth = width - goalLabelSpace
 
@@ -68,8 +101,11 @@ export function BarChart({
   // The biggest goal is the one that counts as "met".
   const mainGoal = goals.length > 0 ? Math.max(...goals) : Infinity
 
+  // The biggest bar actually on screen — what 'by-biggest' shading measures against.
+  const biggest = Math.max(1, ...data.map((d) => d.value))
+
   const slot = plotWidth / Math.max(1, data.length)
-  const barWidth = slot * 0.6 // 60% bar, 40% gap
+  const barWidth = slot * barFill
 
   /** Turn a step count into a y position — 0 sits on the floor, max at the top. */
   const yFor = (value: number) => chartHeight - (value / max) * chartHeight
@@ -80,7 +116,11 @@ export function BarChart({
     .map((goal) => ({ goal, y: yFor(goal), isMain: goal === mainGoal }))
 
   return (
-    <View>
+    // alignSelf 'stretch' matters: dropped inside a parent that centers its
+    // children, a plain View shrinks to fit its contents — and since this one's
+    // contents are sized FROM its width, it would collapse to nothing.
+    <View style={{ alignSelf: 'stretch' }} onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
+      {width > 0 && (
       <Svg width={width} height={height}>
         {/* The goal lines are drawn FIRST so the bars sit on top of them. The
             bars are the subject; these are just the ruler behind. */}
@@ -112,7 +152,7 @@ export function BarChart({
           // Never round more than half the bar's height, or a short day turns
           // into a pill instead of a bar.
           const r = Math.min(barWidth * ROUNDNESS, barHeight / 2)
-          const fill = colorFor(d.value, c.bars)
+          const fill = colorFor(d.value, c.bars, shading === 'by-biggest' ? biggest / c.bars.length : BAND_SIZE)
 
           // Keys are by index, not label: the day view passes many bars with
           // the same (empty) label.
@@ -129,20 +169,21 @@ export function BarChart({
           </SvgText>
         ))}
       </Svg>
+      )}
       {data.length === 0 && <Text style={{ color: c.muted }}>No data yet</Text>}
     </View>
   )
 }
 
 /**
- * Which blue a day draws in: one rung along the ladder for every BAND_SIZE
- * steps, holding at the last rung after that. 4,999 steps sits on rung one,
- * 5,000 moves up one, and 40,000 draws the same as 20,000. Which end of the
- * ladder is light and which is dark depends on the mode — see `src/theme.ts`.
+ * Which blue a bar draws in: one rung along the ladder for every `band` of
+ * value, holding at the last rung after that. With a band of 5,000, 4,999 steps
+ * sits on rung one and 40,000 draws the same as 20,000. Which end of the ladder
+ * is light and which is dark depends on light/dark mode — see `src/theme.ts`.
  */
-function colorFor(value: number, ladder: string[]) {
-  const band = Math.floor(value / BAND_SIZE)
-  return ladder[Math.min(band, ladder.length - 1)]
+function colorFor(value: number, ladder: string[], band: number) {
+  const rung = Math.floor(value / Math.max(1, band))
+  return ladder[Math.min(rung, ladder.length - 1)]
 }
 
 /** 5000 → "5k", 10000 → "10k", 7500 → "7.5k". */
