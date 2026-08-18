@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Text, View } from 'react-native'
 import Svg, { Line, Path, Rect, Text as SvgText } from 'react-native-svg'
 import { usePalette } from '../theme'
@@ -73,13 +74,22 @@ export function BarChart({
    *  hairs. */
   barFill?: number
   /** Draw every Nth label. 1 labels every bar; 6 labels every sixth, which is
-   *  what 24 hours needs to stay readable. */
+   *  what 24 hours needs to stay readable. Labels need not be unique — bars are
+   *  identified by position, not by their text. */
   labelEvery?: number
 }) {
   const c = usePalette()
-  const width = 340
-  const labelSpace = 18 // room under the chart for the date labels
-  const goalLabelSpace = 30 // room at the right for the "5k" / "10k" labels
+
+  // The chart fills whatever it's given rather than being a fixed size, so it
+  // stretches to the screen it's on. `onLayout` below reports that width the
+  // first time the view is measured, and again if it ever changes (rotating the
+  // phone, say). Until then there's nothing to draw.
+  const [width, setWidth] = useState(0)
+
+  const labelSpace = 18 // room under the chart for the labels
+  // Only reserve room at the right when there are goal labels to put there.
+  // A chart with no goal lines has no reason to leave a gap.
+  const goalLabelSpace = goals.length > 0 ? 30 : 0
   const chartHeight = height - labelSpace
   const plotWidth = width - goalLabelSpace
 
@@ -106,7 +116,8 @@ export function BarChart({
     .map((goal) => ({ goal, y: yFor(goal), isMain: goal === mainGoal }))
 
   return (
-    <View>
+    <View onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
+      {width > 0 && (
       <Svg width={width} height={height}>
         {/* The goal lines are drawn FIRST so the bars sit on top of them. The
             bars are the subject; these are just the ruler behind. */}
@@ -155,6 +166,7 @@ export function BarChart({
           </SvgText>
         ))}
       </Svg>
+      )}
       {data.length === 0 && <Text style={{ color: c.muted }}>No data yet</Text>}
     </View>
   )

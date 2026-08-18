@@ -29,13 +29,17 @@ export default function DayDetail() {
       {walkedAtAll && (
         <View style={styles.section}>
           <Text style={[styles.heading, { color: c.text }]}>Through the day</Text>
+          {/* Negative margin cancels the page's 16pt padding, so the chart runs
+              edge to edge while the text around it stays inset. */}
+          <View style={styles.bleed}>
           <BarChart
             data={hourly}
             goals={[]} // no goal lines: nobody walks 5,000 steps in one hour
             shading="by-biggest" // spread the blues across this day's busiest hour
             barFill={0.82} // 24 bars need to be fatter than 7 do
-            labelEvery={6} // 12a · 6a · 12p · 6p
+            labelEvery={6} // four labels across the day, not twenty-four
           />
+          </View>
         </View>
       )}
       {workouts.length > 0 && (
@@ -73,11 +77,17 @@ export default function DayDetail() {
   )
 }
 
-/** 0 → '12a', 9 → '9a', 12 → '12p', 18 → '6p'. */
+/**
+ * The hour as a bare number, in whichever clock the phone is set to.
+ *
+ * Rather than deciding 12- or 24-hour ourselves, we ask the phone to format the
+ * time and then keep only the digits. On a 24-hour phone that gives 0, 6, 12,
+ * 18; on a 12-hour one, 12, 6, 12, 6. Same code either way, and it follows the
+ * device's own time settings instead of a guess.
+ */
 function hourLabel(hour: number) {
-  if (hour === 0) return '12a'
-  if (hour === 12) return '12p'
-  return hour < 12 ? `${hour}a` : `${hour - 12}p`
+  const formatted = new Date(2000, 0, 1, hour).toLocaleTimeString(undefined, { hour: 'numeric' })
+  return formatted.match(/\d+/)?.[0] ?? String(hour)
 }
 
 const styles = StyleSheet.create({
@@ -85,6 +95,7 @@ const styles = StyleSheet.create({
   big: { fontSize: 40, fontWeight: 'bold' },
   caption: {},
   section: { marginTop: 16, gap: 8 },
+  bleed: { marginHorizontal: -16 }, // must match container's padding
   heading: { fontWeight: 'bold', fontSize: 16 },
   entry: { paddingVertical: 8 },
   thumbs: { flexDirection: 'row', gap: 4, marginTop: 4 },
