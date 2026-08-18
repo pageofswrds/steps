@@ -2,8 +2,10 @@ import { router } from 'expo-router'
 import { useState } from 'react'
 import { Button, StyleSheet, Text, View } from 'react-native'
 import { getDb, setMeta, syncHealth } from '../data'
+import { usePalette } from '../theme'
 
 export default function Welcome() {
+  const c = usePalette()
   const [busy, setBusy] = useState(false)
 
   const connect = async () => {
@@ -18,9 +20,9 @@ export default function Welcome() {
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Steps</Text>
-      <Text style={styles.body}>
+    <View style={[styles.container, { backgroundColor: c.background }]}>
+      <Text style={[styles.title, { color: c.text }]}>Steps</Text>
+      <Text style={[styles.body, { color: c.text }]}>
         A journal for your walks. Connect Apple Health to see your steps — the data stays on this phone.
       </Text>
       <Button title={busy ? 'Connecting…' : 'Connect Apple Health'} onPress={connect} disabled={busy} />
