@@ -14,10 +14,25 @@ import Svg, { Line, Path, Rect, Text as SvgText } from 'react-native-svg'
  * for gradients and glow.
  */
 
-/** The blue a normal day draws in. */
-const BAR_COLOR = '#4a90d9'
-/** The warm color a day draws in once it has reached the goal. */
-const GOAL_MET_COLOR = '#e8734a'
+/**
+ * The blues a bar can draw in, lightest first. The more you walked, the darker
+ * the bar — one step down this list for every BAND_SIZE steps.
+ *
+ * It stops at a deep denim rather than going all the way to navy: past a point
+ * a dark bar just reads as a black shape and you lose the sense of a ladder.
+ * If you want it bolder, darken the last two; if you want it airier, lighten
+ * the first two. Adding a sixth color here extends the ladder on its own.
+ */
+const BAR_COLORS = [
+  '#b8d4ee', // under 5k   — light
+  '#7fb2e0', // 5k–10k
+  '#4a90d9', // 10k–15k    — the original blue
+  '#2f6fb5', // 15k–20k
+  '#1f5490', // 20k and up — deepest, and where the ladder stops
+]
+
+/** How many steps each shade covers. Every 5,000 steps darkens the bar once. */
+const BAND_SIZE = 5000
 
 /**
  * Which corners get rounded.
@@ -109,7 +124,7 @@ export function BarChart({
           // Never round more than half the bar's height, or a short day turns
           // into a pill instead of a bar.
           const r = Math.min(barWidth * ROUNDNESS, barHeight / 2)
-          const fill = d.value >= mainGoal ? GOAL_MET_COLOR : BAR_COLOR
+          const fill = colorFor(d.value)
 
           return ROUNDING === 'all' ? (
             <Rect key={d.label} x={x} y={y} width={barWidth} height={barHeight} rx={r} fill={fill} />
@@ -127,6 +142,16 @@ export function BarChart({
       {data.length === 0 && <Text>No data yet</Text>}
     </View>
   )
+}
+
+/**
+ * Which blue a day draws in: one shade darker for every BAND_SIZE steps, and
+ * everything past the last shade stays at the darkest. 4,999 steps is the
+ * lightest; 5,000 moves up a shade; 40,000 draws the same as 20,000.
+ */
+function colorFor(value: number) {
+  const band = Math.floor(value / BAND_SIZE)
+  return BAR_COLORS[Math.min(band, BAR_COLORS.length - 1)]
 }
 
 /** 5000 → "5k", 10000 → "10k", 7500 → "7.5k". */
