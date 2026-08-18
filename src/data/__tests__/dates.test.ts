@@ -1,4 +1,4 @@
-import { addDays, dateKey, lastNDateKeys, startOfDay } from '../dates'
+import { addDays, addMonths, dateKey, lastNDateKeys, startOfDay, startOfMonth } from '../dates'
 
 test('dateKey formats local YYYY-MM-DD with padding', () => {
   expect(dateKey(new Date(2026, 0, 5))).toBe('2026-01-05')
@@ -17,4 +17,15 @@ test('startOfDay zeroes the time', () => {
   const d = startOfDay(new Date(2026, 7, 13, 17, 45))
   expect(d.getHours()).toBe(0)
   expect(dateKey(d)).toBe('2026-08-13')
+})
+
+test('startOfMonth returns the first, time zeroed', () => {
+  const d = startOfMonth(new Date(2026, 7, 13, 17, 45))
+  expect(dateKey(d)).toBe('2026-08-01')
+  expect(d.getHours()).toBe(0)
+})
+
+test('addMonths crosses year boundaries and lands on the first', () => {
+  expect(dateKey(addMonths(new Date(2026, 0, 15), -1))).toBe('2025-12-01')
+  expect(dateKey(addMonths(new Date(2026, 11, 15), 1))).toBe('2027-01-01')
 })

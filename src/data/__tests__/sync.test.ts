@@ -20,6 +20,7 @@ function fakeSource(overrides: Partial<HealthSource> = {}): HealthSource & { cal
     getWorkouts: async () => [
       { id: 'w1', date: '2026-08-13', start: '2026-08-13T09:00:00.000Z', end: '2026-08-13T10:00:00.000Z', type: 'walking' as const, distanceMeters: 4000, durationS: 3600 },
     ],
+    getHourlySteps: async () => [],
     ...overrides,
   }
 }

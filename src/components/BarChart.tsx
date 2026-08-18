@@ -28,7 +28,7 @@ export function BarChart({ data, height = 160 }: { data: { label: string; value:
           const barHeight = (d.value / max) * chartHeight
           return (
             <Rect
-              key={d.label}
+              key={i}
               x={i * slot + (slot - barWidth) / 2}
               y={chartHeight - barHeight}
               width={barWidth}
@@ -38,7 +38,7 @@ export function BarChart({ data, height = 160 }: { data: { label: string; value:
           )
         })}
         {data.map((d, i) => (
-          <SvgText key={d.label} x={i * slot + slot / 2} y={height - 4} fontSize={10} fill="#666" textAnchor="middle">
+          <SvgText key={i} x={i * slot + slot / 2} y={height - 4} fontSize={10} fill="#666" textAnchor="middle">
             {d.label}
           </SvgText>
         ))}

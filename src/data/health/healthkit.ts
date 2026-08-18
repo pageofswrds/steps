@@ -7,8 +7,8 @@ import {
   queryWorkoutSamples,
   requestAuthorization,
 } from '@kingstinct/react-native-healthkit'
-import { dateKey, startOfDay } from '../dates'
-import type { HealthDailyTotal, HealthSource, HealthWorkout } from './types'
+import { addDays, dateKey, startOfDay } from '../dates'
+import type { HealthDailyTotal, HealthHourlyTotal, HealthSource, HealthWorkout } from './types'
 
 const READ_TYPES = [
   'HKQuantityTypeIdentifierStepCount',
@@ -70,6 +70,23 @@ export const healthKitSource: HealthSource = {
       steps: Math.round(steps.get(date) ?? 0),
       distanceMeters: distance.get(date) ?? 0,
     }))
+  },
+
+  getHourlySteps: async (day: Date): Promise<HealthHourlyTotal[]> => {
+    const start = startOfDay(day)
+    const end = startOfDay(addDays(day, 1))
+    const responses = await queryStatisticsCollectionForQuantity(
+      'HKQuantityTypeIdentifierStepCount',
+      ['cumulativeSum'],
+      start,
+      { hour: 1 },
+      { filter: { date: { startDate: start, endDate: end } }, unit: 'count' },
+    )
+    const byHour = new Array<number>(24).fill(0)
+    for (const r of responses) {
+      if (r.startDate) byHour[new Date(r.startDate).getHours()] = Math.round(r.sumQuantity?.quantity ?? 0)
+    }
+    return byHour.map((steps, hour) => ({ hour, steps }))
   },
 
   getWorkouts: async (start: Date, end: Date): Promise<HealthWorkout[]> => {
