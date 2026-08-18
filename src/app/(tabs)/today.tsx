@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
   steps: { fontSize: 64, fontWeight: 'bold', marginTop: 24 },
   caption: { fontSize: 14, color: '#666' },
   chart: { marginTop: 24, gap: 8 },
-  journalCard: { alignSelf: 'stretch', backgroundColor: '#f2f2f2', borderRadius: 12, padding: 12, marginTop: 12, gap: 6 },
+  journalCard: { alignSelf: 'stretch', backgroundColor: '#e4eefa', borderRadius: 12, padding: 12, marginTop: 12, gap: 6 },
   journalDate: { fontSize: 12, fontWeight: 'bold', color: '#666' },
   journalText: { fontSize: 15, lineHeight: 21 },
   thumbs: { flexDirection: 'row', gap: 4 },
