@@ -26,7 +26,7 @@ The Settings screen has a dev-only button that seeds a year of fake step data, s
 ## Tests
 
 ```bash
-npm test            # jest — data layer, 23 tests
+npm test            # jest — data layer, 32 tests
 npx tsc --noEmit    # type check
 npx expo-doctor     # project health
 ```

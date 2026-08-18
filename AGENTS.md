@@ -38,8 +38,8 @@ There's also `npm run ios`, which rebuilds the whole app from scratch. It's slow
 Four folders matter:
 
 - **`src/app/`** — the screens. One file per screen, and the file's path *is* the screen's address in the app. This is yours.
-- **`src/components/`** — shared pieces that screens use. Right now just `BarChart.tsx`, which is heavily commented and meant to be copied and mangled. Also yours.
-- **`src/data/`** — the engine room. It talks to Apple Health, stores days and entries and photos, and hands them to your screens. It has 23 tests and it works. You never need to open it, and nothing you do in `src/app/` can corrupt it — the worst that happens is a screen doesn't draw.
+- **`src/components/`** — shared pieces that screens use: `BarChart.tsx` (heavily commented, meant to be copied and mangled) and `MonthCalendar.tsx` (the swipeable month grid). Also yours.
+- **`src/data/`** — the engine room. It talks to Apple Health, stores days and entries and photos, and hands them to your screens. It has 32 tests and it works. You never need to open it, and nothing you do in `src/app/` can corrupt it — the worst that happens is a screen doesn't draw.
 - **`docs/`** — the design spec and build plan, if you or an assistant ever want to know why something is the way it is.
 
 (There's also `ios/`, the native Apple project. That's David's territory — you won't need to go in there.)
@@ -48,7 +48,7 @@ The screens, by file:
 
 | File | What it is |
 | --- | --- |
-| `src/app/(tabs)/today.tsx` | Today tab — the big number and the 7-day chart |
+| `src/app/(tabs)/today.tsx` | Today tab — the big number, the Day/Week chart, and the calendar toggle |
 | `src/app/(tabs)/journal.tsx` | Journal tab — all your entries, newest first |
 | `src/app/(tabs)/days.tsx` | Days tab — the last 90 days as a list |
 | `src/app/day/[date].tsx` | One day: its steps, its walks, its entries |
@@ -79,6 +79,14 @@ return <Text>{today.steps.toLocaleString()} steps</Text>
 import { addDays, dateKey, todayKey, useDailySteps } from '../../data'
 const week = useDailySteps({ start: dateKey(addDays(new Date(), -6)), end: todayKey() })
 // [{ date: '2026-08-08', steps: 7213, distanceMeters: 5400 }, …]
+```
+
+**One day, hour by hour** — always 24 entries, zeros for quiet hours:
+
+```tsx
+import { todayKey, useHourlySteps } from '../../data'
+const hours = useHourlySteps(todayKey())
+// [{ hour: 0, steps: 0 }, … { hour: 14, steps: 612 }, …]
 ```
 
 **Journal entries**, newest first — the whole lot, or just a stretch of dates:
@@ -162,7 +170,7 @@ Change one thing at a time, look at it, commit it, then change the next. These a
 > Right now a day can hold any number of entries. I want one entry per day instead: tapping "write about this day" on a day that already has an entry should open that entry for editing rather than making a new one. Change `src/app/day/[date].tsx` and `src/app/entry/new.tsx` only — don't change anything in `src/data/`.
 
 **Make something beautiful with Skia.**
-> `@shopify/react-native-skia` is already installed and unused — don't install anything. Build `src/components/StepsRing.tsx` with it: a circular progress ring for today's steps against a 10,000 goal, with a soft glow where the ring ends. Put it on the Today screen above the chart. Read the Skia docs before you write it.
+> `@shopify/react-native-skia` is already installed and unused — don't install anything. Build `src/components/StepsRing.tsx` with it: a circular ring that fills with today's steps (a full ring is a number of your choosing — this app has no built-in step goal), with a soft glow where the ring ends. Put it on the Today screen above the chart. Read the Skia docs before you write it.
 
 **Bring the photos forward.**
 > On the Today screen, under the chart, show the photos from this week's journal entries as a row of thumbnails that scrolls sideways, tapping one opens that entry. Use `useEntries` with the week's date range, and `expo-image` for the images.
@@ -176,7 +184,7 @@ A note on prompting: describe what you want it to *look and feel* like, not how 
 1. **Expo has changed.** This project is on Expo SDK 57. Read the exact versioned docs at https://docs.expo.dev/versions/v57.0.0/ before writing any Expo code — training-memory APIs and older tutorials are frequently wrong for this version.
 2. **Screens import from `../data` only.** Use the public index (`'../data'` / `'../../data'`). Never import from a file inside `src/data/` directly, and don't reach for `expo-sqlite` from a screen.
 3. **Never add a native dependency.** Anything that requires a native rebuild — a new native module, a new entry in the `plugins` list in `app.json`, a change under `ios/` — must not be installed. Stop and tell her to ask David. Already available and free to use: `@shopify/react-native-skia`, `react-native-svg`, `react-native-reanimated`, `react-native-gesture-handler`, `expo-image`, `expo-haptics`, `expo-symbols`, `expo-glass-effect`, `@expo/ui`, `expo-image-picker`, `@react-native-community/datetimepicker`.
-4. **Keep the tests green.** Run `npm test` before you say you're done — 23 tests, all passing. Run `npx tsc --noEmit` too if you touched types.
+4. **Keep the tests green.** Run `npm test` before you say you're done — 32 tests, all passing. Run `npx tsc --noEmit` too if you touched types.
 5. **Prefer changing screens over changing `src/data/`.** The data layer is a tested, working foundation; almost every request can be satisfied in `src/app/` or `src/components/`. If a request genuinely needs a data-layer change, say so out loud first and add tests alongside it.
 6. **Commit when something works**, with a plain-language message. Small commits are her undo button.
 
