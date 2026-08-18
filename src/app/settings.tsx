@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { Button, Linking, StyleSheet, Text, View } from 'react-native'
 import { seedFakeData, syncHealth, useSyncStatus } from '../data'
+import { usePalette } from '../theme'
 
 export default function Settings() {
+  const c = usePalette()
   const { lastSyncedAt, permissionState } = useSyncStatus()
   const [message, setMessage] = useState('')
 
@@ -14,9 +16,9 @@ export default function Settings() {
   }
 
   return (
-    <View style={styles.container}>
-      <Text>Health permission: {permissionState}</Text>
-      <Text>Last synced: {lastSyncedAt ? new Date(lastSyncedAt).toLocaleString() : 'never'}</Text>
+    <View style={[styles.container, { backgroundColor: c.background, flex: 1 }]}>
+      <Text style={{ color: c.text }}>Health permission: {permissionState}</Text>
+      <Text style={{ color: c.text }}>Last synced: {lastSyncedAt ? new Date(lastSyncedAt).toLocaleString() : 'never'}</Text>
       {permissionState !== 'requested' && <Button title="Connect Apple Health" onPress={connect} />}
       <Button title="Sync now" onPress={() => syncHealth().then((r) => setMessage(`Sync: ${r.status}`))} />
       <Button title="Open Health privacy settings" onPress={() => Linking.openURL('app-settings:')} />
@@ -29,12 +31,12 @@ export default function Settings() {
           }}
         />
       )}
-      {message !== '' && <Text style={styles.note}>{message}</Text>}
+      {message !== '' && <Text style={[styles.note, { color: c.muted }]}>{message}</Text>}
     </View>
   )
 }
 
 const styles = StyleSheet.create({
   container: { padding: 24, gap: 16 },
-  note: { color: '#666' },
+  note: {},
 })
