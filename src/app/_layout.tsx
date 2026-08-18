@@ -1,6 +1,7 @@
 import { Stack, ThemeProvider } from 'expo-router'
 import { useEffect } from 'react'
 import { AppState } from 'react-native'
+import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { StatusBar } from 'expo-status-bar'
 import { getDb, syncHealth } from '../data'
 import { useNavigationTheme } from '../theme'
@@ -18,9 +19,13 @@ export default function RootLayout() {
   }, [])
 
   return (
-    // ThemeProvider is what makes the headers, the tab bar and the background
-    // behind a sliding screen follow light/dark. Those are drawn by the
-    // navigation library, not by our screens, so they have to be told.
+    // GestureHandlerRootView is the listening post the touch library needs at
+    // the very root of the app — without it, any screen using GestureDetector
+    // (the chart, for one) refuses to render at all.
+    <GestureHandlerRootView style={{ flex: 1 }}>
+    {/* ThemeProvider is what makes the headers, the tab bar and the background
+        behind a sliding screen follow light/dark. Those are drawn by the
+        navigation library, not by our screens, so they have to be told. */}
     <ThemeProvider value={theme}>
       {/* "auto" = dark text on a light background, light text on a dark one. */}
       <StatusBar style="auto" />
@@ -34,5 +39,6 @@ export default function RootLayout() {
         <Stack.Screen name="settings" options={{ title: 'Settings' }} />
       </Stack>
     </ThemeProvider>
+    </GestureHandlerRootView>
   )
 }
